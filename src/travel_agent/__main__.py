@@ -1,0 +1,6 @@
+"""Allow ``python -m travel_agent``."""
+
+from travel_agent.main import main
+
+if __name__ == "__main__":
+    raise SystemExit(main())

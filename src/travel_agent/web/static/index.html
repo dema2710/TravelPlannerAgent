@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Build a budget-aware, day-by-day travel itinerary with an explicit AI tool-calling agent.">
+  <title>Travel Planner - AI itinerary studio</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%230d5c4b'/%3E%3Cpath d='M18 46 31 18l6 13 13 6-26 9-6 13-4-13z' fill='%23f5b85d'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#planner-form">Skip to planner</a>
+
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="Travel Planner home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" role="img" focusable="false">
+          <path d="M6 24 13 7l4 8 9 4-15 5-3 6-2-6z"></path>
+        </svg>
+      </span>
+      <span><strong>Travel</strong> Planner</span>
+    </a>
+    <div class="header-meta">
+      <span class="pill"><span class="live-dot" aria-hidden="true"></span> Simulated data</span>
+      <span class="pill pill-quiet">DeepSeek powered</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Agentic itinerary studio</p>
+        <h1>Go somewhere.<br><em>We&rsquo;ll shape the days.</em></h1>
+        <p class="lede">Tell us how you like to travel. The agent checks flights, stays, weather and local highlights, then builds a day-by-day plan around your budget and pace.</p>
+        <div class="hero-points" aria-label="Planner strengths">
+          <span>Budget-aware</span>
+          <span>Dietary-aware</span>
+          <span>Traceable</span>
+        </div>
+      </div>
+      <div class="hero-ticket" aria-hidden="true">
+        <div class="ticket-top">
+          <span>PLAN / 001</span>
+          <span>ONE TRAVELLER</span>
+        </div>
+        <div class="ticket-route">
+          <span>PRG</span>
+          <span class="route-line"><span></span></span>
+          <span>PAR</span>
+        </div>
+        <div class="ticket-grid">
+          <div><small>DAYS</small><strong>03</strong></div>
+          <div><small>PACE</small><strong>Mellow</strong></div>
+          <div><small>STYLE</small><strong>Culture</strong></div>
+        </div>
+        <p class="ticket-note">Every price and forecast in this demo is simulated.</p>
+      </div>
+    </section>
+
+    <section class="planner-shell" id="planner" aria-labelledby="planner-heading">
+      <div class="planner-grid">
+        <form class="panel planner-panel" id="planner-form" novalidate>
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Build a trip</p>
+              <h2 id="planner-heading">Your travel brief</h2>
+            </div>
+            <span class="step-badge">01 &rarr; 03</span>
+          </div>
+
+          <fieldset class="mode-fieldset">
+            <legend>Generation mode</legend>
+            <div class="mode-switch">
+              <label class="mode-option">
+                <input type="radio" name="mode" value="offline" checked>
+                <span><strong>Offline demo</strong><small>Instant simulated planning</small></span>
+              </label>
+              <label class="mode-option">
+                <input type="radio" name="mode" value="live">
+                <span><strong>DeepSeek live</strong><small>Uses the server API key</small></span>
+              </label>
+            </div>
+            <p class="field-note" id="mode-note"></p>
+          </fieldset>
+
+          <div class="form-grid">
+            <label class="field">
+              <span>Destination</span>
+              <select id="destination" name="destination" required></select>
+            </label>
+            <label class="field">
+              <span>Departure city</span>
+              <select id="departure_city" name="departure_city" required></select>
+            </label>
+            <label class="field">
+              <span>Departure date</span>
+              <input id="start_date" name="start_date" type="date" required>
+            </label>
+            <label class="field">
+              <span>Return date</span>
+              <input id="end_date" name="end_date" type="date" required>
+            </label>
+            <label class="field">
+              <span>Total budget</span>
+              <input id="budget" name="budget" type="number" min="1" step="1" value="800" required>
+            </label>
+            <label class="field">
+              <span>Currency</span>
+              <select id="currency" name="currency" required></select>
+            </label>
+            <label class="field field-wide">
+              <span>Travel pace</span>
+              <select id="pace" name="pace" required></select>
+            </label>
+          </div>
+
+          <fieldset class="choice-fieldset">
+            <legend>Interests <span class="legend-hint">Choose at least one</span></legend>
+            <div class="chips" id="interests"></div>
+          </fieldset>
+
+          <fieldset class="choice-fieldset">
+            <legend>Dietary preferences <span class="legend-hint">Optional</span></legend>
+            <div class="chips" id="dietary"></div>
+          </fieldset>
+
+          <div class="form-footer">
+            <button class="primary-button" id="generate-button" type="submit" disabled>
+              <span class="button-label">Generate itinerary</span>
+              <span class="button-spinner" aria-hidden="true"></span>
+            </button>
+            <p class="form-status" id="form-status" aria-live="polite"></p>
+          </div>
+
+          <div class="alert" id="error-panel" role="alert" hidden>
+            <strong>We couldn&rsquo;t build that plan.</strong>
+            <p id="error-message"></p>
+            <ul id="error-details"></ul>
+          </div>
+        </form>
+
+        <aside class="panel side-panel" aria-live="polite">
+          <div id="side-idle">
+            <p class="eyebrow">Behind the itinerary</p>
+            <h2>A small agent.<br>A complete trip.</h2>
+            <ul class="feature-list">
+              <li><span class="feature-index">01</span><span><strong>Tool calling</strong>Flights, stays, weather, attractions and a day planner.</span></li>
+              <li><span class="feature-index">02</span><span><strong>Budget checks</strong>The plan is rejected if its numbers do not agree.</span></li>
+              <li><span class="feature-index">03</span><span><strong>Visible reasoning</strong>Each run produces a JSONL execution trace.</span></li>
+            </ul>
+            <div class="aside-note">Offline mode is instant and needs no API key. Live mode lets DeepSeek choose and sequence the tools.</div>
+          </div>
+          <div class="loading-state" id="side-loading" hidden>
+            <div class="orbit" aria-hidden="true"><span></span></div>
+            <h2>Building your days</h2>
+            <p id="loading-copy">Checking the route, the weather and the budget.</p>
+            <div class="loading-bars" aria-hidden="true"><i></i><i></i><i></i></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="results" id="results" aria-labelledby="result-title" hidden>
+      <div class="results-heading">
+        <div>
+          <p class="eyebrow">Your simulated itinerary</p>
+          <h2 id="result-title"></h2>
+          <p class="results-subtitle" id="result-subtitle"></p>
+        </div>
+        <div class="result-badges" id="result-badges"></div>
+      </div>
+
+      <div class="budget-hero">
+        <div class="budget-lead">
+          <span>Total estimated cost</span>
+          <strong id="total-cost"></strong>
+          <p id="budget-status"></p>
+        </div>
+        <div class="budget-figures">
+          <div><span>Budget</span><strong id="budget-total"></strong></div>
+          <div><span>Remaining</span><strong id="budget-remaining"></strong></div>
+        </div>
+        <div class="budget-graph">
+          <div class="budget-track"><span class="budget-fill" id="budget-fill"></span></div>
+          <div class="budget-labels"><span>Spending plan</span><span id="budget-percent"></span></div>
+        </div>
+      </div>
+
+      <div class="budget-breakdown" id="budget-breakdown" aria-label="Budget breakdown"></div>
+
+      <div class="logistics-grid">
+        <article class="info-card" id="flight-card"></article>
+        <article class="info-card" id="stay-card"></article>
+      </div>
+
+      <section class="weather-section" aria-labelledby="weather-heading">
+        <div class="section-heading"><div><p class="eyebrow">Pack accordingly</p><h3 id="weather-heading">Simulated weather</h3></div><span class="section-note">Not a live forecast</span></div>
+        <div class="weather-row" id="weather"></div>
+      </section>
+
+      <section class="itinerary-section" aria-labelledby="itinerary-heading">
+        <div class="section-heading"><div><p class="eyebrow">The shape of the trip</p><h3 id="itinerary-heading">Day by day</h3></div><span class="section-note" id="itinerary-count"></span></div>
+        <div class="day-list" id="itinerary"></div>
+      </section>
+
+      <div class="notes-grid">
+        <section class="notes-card"><p class="eyebrow">Agent notes</p><h3>Recommendations</h3><ul id="recommendations"></ul></section>
+        <section class="notes-card"><p class="eyebrow">Good to know</p><h3>Practical notes</h3><ul id="practical-notes"></ul></section>
+      </div>
+
+      <div class="result-footer">
+        <p class="trace-line" id="trace-line"></p>
+        <p class="disclaimer" id="result-disclaimer"></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Travel Planner Agent <span aria-hidden="true">&middot;</span> simulated data for coursework</p>
+    <p>No bookings, payments, or real-time availability.</p>
+  </footer>
+</body>
+</html>
