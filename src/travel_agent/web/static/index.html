@@ -21,17 +21,23 @@
       </span>
       <span><strong>Travel</strong> Planner</span>
     </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="#planner">Plan a trip</a>
+      <a href="#results" id="nav-results" hidden>Your itinerary</a>
+    </nav>
     <div class="header-meta">
-      <span class="pill"><span class="live-dot" aria-hidden="true"></span> Simulated data</span>
-      <span class="pill pill-quiet">DeepSeek powered</span>
+      <span class="status-pill" id="header-status">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span id="header-status-text">Connecting</span>
+      </span>
     </div>
   </header>
 
   <main>
-    <section class="hero">
+    <section class="hero" aria-labelledby="hero-title">
       <div class="hero-copy">
         <p class="eyebrow">Agentic itinerary studio</p>
-        <h1>Go somewhere.<br><em>We&rsquo;ll shape the days.</em></h1>
+        <h1 id="hero-title">Go somewhere.<br><em>We&rsquo;ll shape the days.</em></h1>
         <p class="lede">Tell us how you like to travel. The agent checks flights, stays, weather and local highlights, then builds a day-by-day plan around your budget and pace.</p>
         <div class="hero-points" aria-label="Planner strengths">
           <span>Budget-aware</span>
@@ -39,23 +45,36 @@
           <span>Traceable</span>
         </div>
       </div>
-      <div class="hero-ticket" aria-hidden="true">
-        <div class="ticket-top">
-          <span>PLAN / 001</span>
-          <span>ONE TRAVELLER</span>
+
+      <aside class="hero-preview" aria-label="Sample itinerary preview">
+        <div class="preview-top">
+          <span class="preview-tag">Sample itinerary</span>
+          <span class="preview-len">3 days &middot; 2 nights</span>
         </div>
-        <div class="ticket-route">
-          <span>PRG</span>
-          <span class="route-line"><span></span></span>
-          <span>PAR</span>
+        <p class="preview-route"><span>PRG</span><i aria-hidden="true"></i><span>CDG</span></p>
+        <p class="preview-caption">Prague to Paris &middot; one traveller</p>
+        <ul class="preview-list">
+          <li>
+            <span class="preview-time">09:30</span>
+            <span class="preview-name"><strong>Louvre &amp; Tuileries</strong><small>Museums &middot; 2.5h</small></span>
+            <span class="preview-cost">&euro;22</span>
+          </li>
+          <li>
+            <span class="preview-time">13:00</span>
+            <span class="preview-name"><strong>Latin Quarter lunch</strong><small>Food &middot; 1.5h</small></span>
+            <span class="preview-cost">&euro;18</span>
+          </li>
+          <li>
+            <span class="preview-time">19:30</span>
+            <span class="preview-name"><strong>Seine sunset walk</strong><small>Nature &middot; 1h</small></span>
+            <span class="preview-cost">&euro;0</span>
+          </li>
+        </ul>
+        <div class="preview-foot">
+          <span class="preview-badge">Simulated data</span>
+          <span>Fits a &euro;800 budget</span>
         </div>
-        <div class="ticket-grid">
-          <div><small>DAYS</small><strong>03</strong></div>
-          <div><small>PACE</small><strong>Mellow</strong></div>
-          <div><small>STYLE</small><strong>Culture</strong></div>
-        </div>
-        <p class="ticket-note">Every price and forecast in this demo is simulated.</p>
-      </div>
+      </aside>
     </section>
 
     <section class="planner-shell" id="planner" aria-labelledby="planner-heading">
@@ -63,10 +82,10 @@
         <form class="panel planner-panel" id="planner-form" novalidate>
           <div class="panel-heading">
             <div>
-              <p class="eyebrow">Build a trip</p>
-              <h2 id="planner-heading">Your travel brief</h2>
+              <p class="eyebrow">Step 01 &middot; Your brief</p>
+              <h2 id="planner-heading">Plan the trip</h2>
             </div>
-            <span class="step-badge">01 &rarr; 03</span>
+            <p class="panel-hint">All travel data is simulated</p>
           </div>
 
           <fieldset class="mode-fieldset">
@@ -74,7 +93,7 @@
             <div class="mode-switch">
               <label class="mode-option">
                 <input type="radio" name="mode" value="offline" checked>
-                <span><strong>Offline demo</strong><small>Instant simulated planning</small></span>
+                <span><strong>Offline demo</strong><small>Instant &middot; simulated</small></span>
               </label>
               <label class="mode-option">
                 <input type="radio" name="mode" value="live">
@@ -103,7 +122,10 @@
             </label>
             <label class="field">
               <span>Total budget</span>
-              <input id="budget" name="budget" type="number" min="1" step="1" value="800" required>
+              <span class="money-input">
+                <span class="money-prefix" id="budget-prefix" aria-hidden="true">&euro;</span>
+                <input id="budget" name="budget" type="number" min="1" step="1" value="800" required>
+              </span>
             </label>
             <label class="field">
               <span>Currency</span>
@@ -115,15 +137,16 @@
             </label>
           </div>
 
-          <fieldset class="choice-fieldset">
-            <legend>Interests <span class="legend-hint">Choose at least one</span></legend>
-            <div class="chips" id="interests"></div>
-          </fieldset>
-
-          <fieldset class="choice-fieldset">
-            <legend>Dietary preferences <span class="legend-hint">Optional</span></legend>
-            <div class="chips" id="dietary"></div>
-          </fieldset>
+          <div class="choice-grid">
+            <fieldset class="choice-fieldset">
+              <legend>Interests <span class="legend-hint">Choose at least one</span></legend>
+              <div class="chips" id="interests"></div>
+            </fieldset>
+            <fieldset class="choice-fieldset">
+              <legend>Dietary preferences <span class="legend-hint">Optional</span></legend>
+              <div class="chips" id="dietary"></div>
+            </fieldset>
+          </div>
 
           <div class="form-footer">
             <button class="primary-button" id="generate-button" type="submit" disabled>
@@ -140,17 +163,34 @@
           </div>
         </form>
 
-        <aside class="panel side-panel" aria-live="polite">
+        <aside class="panel trip-panel" aria-labelledby="summary-heading">
           <div id="side-idle">
-            <p class="eyebrow">Behind the itinerary</p>
-            <h2>A small agent.<br>A complete trip.</h2>
-            <ul class="feature-list">
-              <li><span class="feature-index">01</span><span><strong>Tool calling</strong>Flights, stays, weather, attractions and a day planner.</span></li>
-              <li><span class="feature-index">02</span><span><strong>Budget checks</strong>The plan is rejected if its numbers do not agree.</span></li>
-              <li><span class="feature-index">03</span><span><strong>Visible reasoning</strong>Each run produces a JSONL execution trace.</span></li>
-            </ul>
-            <div class="aside-note">Offline mode is instant and needs no API key. Live mode lets DeepSeek choose and sequence the tools.</div>
+            <div class="summary-head">
+              <div>
+                <p class="eyebrow">Step 02 &middot; Check</p>
+                <h2 id="summary-heading">Trip summary</h2>
+              </div>
+              <span class="summary-mode" id="summary-mode">Offline</span>
+            </div>
+
+            <p class="summary-route" id="sum-route">Prague &rarr; Paris</p>
+
+            <dl class="summary-list">
+              <div><dt>Dates</dt><dd id="sum-dates">&mdash;</dd></div>
+              <div><dt>Duration</dt><dd id="sum-duration">&mdash;</dd></div>
+              <div><dt>Pace</dt><dd id="sum-pace">&mdash;</dd></div>
+              <div><dt>Interests</dt><dd id="sum-interests">&mdash;</dd></div>
+              <div><dt>Dietary</dt><dd id="sum-dietary">&mdash;</dd></div>
+            </dl>
+
+            <div class="summary-budget">
+              <span>Total budget</span>
+              <strong id="sum-budget">&euro;800</strong>
+            </div>
+
+            <p class="summary-note" id="summary-note">Deterministic scripted plan using simulated travel data.</p>
           </div>
+
           <div class="loading-state" id="side-loading" hidden>
             <div class="orbit" aria-hidden="true"><span></span></div>
             <h2>Building your days</h2>
@@ -164,30 +204,53 @@
     <section class="results" id="results" aria-labelledby="result-title" hidden>
       <div class="results-heading">
         <div>
-          <p class="eyebrow">Your simulated itinerary</p>
+          <p class="eyebrow" id="result-eyebrow">Your itinerary</p>
           <h2 id="result-title"></h2>
           <p class="results-subtitle" id="result-subtitle"></p>
         </div>
         <div class="result-badges" id="result-badges"></div>
       </div>
 
-      <div class="budget-hero">
-        <div class="budget-lead">
-          <span>Total estimated cost</span>
-          <strong id="total-cost"></strong>
-          <p id="budget-status"></p>
-        </div>
-        <div class="budget-figures">
-          <div><span>Budget</span><strong id="budget-total"></strong></div>
-          <div><span>Remaining</span><strong id="budget-remaining"></strong></div>
-        </div>
-        <div class="budget-graph">
-          <div class="budget-track"><span class="budget-fill" id="budget-fill"></span></div>
-          <div class="budget-labels"><span>Spending plan</span><span id="budget-percent"></span></div>
+      <div class="source-banner" id="source-banner" role="note">
+        <span class="source-mark" id="source-mark" aria-hidden="true">S</span>
+        <div>
+          <strong id="source-title"></strong>
+          <p id="source-copy"></p>
         </div>
       </div>
 
-      <div class="budget-breakdown" id="budget-breakdown" aria-label="Budget breakdown"></div>
+      <div class="overview-grid">
+        <article class="overview-card">
+          <div class="overview-head">
+            <p class="eyebrow">Trip overview</p>
+            <span class="overview-tag" id="overview-mode">Scripted</span>
+          </div>
+          <p class="overview-summary" id="result-summary"></p>
+          <ul class="overview-includes" id="overview-includes"></ul>
+          <dl class="overview-facts" id="overview-facts"></dl>
+        </article>
+
+        <article class="budget-card">
+          <div class="budget-top">
+            <div>
+              <span class="budget-label">Total estimated cost</span>
+              <strong id="total-cost"></strong>
+            </div>
+            <span class="budget-flag" id="budget-flag"></span>
+          </div>
+          <p class="budget-status" id="budget-status"></p>
+          <div class="budget-progress">
+            <div class="budget-track" id="budget-track" role="progressbar" aria-label="Budget used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="budget-fill" id="budget-fill"></span></div>
+            <div class="budget-labels"><span>Budget used</span><span id="budget-percent"></span></div>
+          </div>
+          <div class="budget-figures">
+            <div><span>Budget</span><strong id="budget-total"></strong></div>
+            <div><span>Remaining</span><strong id="budget-remaining"></strong></div>
+          </div>
+          <div class="breakdown-head"><span>Cost breakdown</span><span>Share of total</span></div>
+          <div class="budget-breakdown" id="budget-breakdown" aria-label="Cost breakdown"></div>
+        </article>
+      </div>
 
       <div class="logistics-grid">
         <article class="info-card" id="flight-card"></article>
@@ -195,12 +258,18 @@
       </div>
 
       <section class="weather-section" aria-labelledby="weather-heading">
-        <div class="section-heading"><div><p class="eyebrow">Pack accordingly</p><h3 id="weather-heading">Simulated weather</h3></div><span class="section-note">Not a live forecast</span></div>
+        <div class="section-heading">
+          <div><p class="eyebrow">Pack accordingly</p><h3 id="weather-heading">Simulated weather</h3></div>
+          <span class="section-note">Not a live forecast</span>
+        </div>
         <div class="weather-row" id="weather"></div>
       </section>
 
       <section class="itinerary-section" aria-labelledby="itinerary-heading">
-        <div class="section-heading"><div><p class="eyebrow">The shape of the trip</p><h3 id="itinerary-heading">Day by day</h3></div><span class="section-note" id="itinerary-count"></span></div>
+        <div class="section-heading">
+          <div><p class="eyebrow">The shape of the trip</p><h3 id="itinerary-heading">Day by day</h3></div>
+          <span class="section-note" id="itinerary-count"></span>
+        </div>
         <div class="day-list" id="itinerary"></div>
       </section>
 

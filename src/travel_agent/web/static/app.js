@@ -7,6 +7,7 @@ const els = {
   startDate: document.getElementById("start_date"),
   endDate: document.getElementById("end_date"),
   budget: document.getElementById("budget"),
+  budgetPrefix: document.getElementById("budget-prefix"),
   currency: document.getElementById("currency"),
   pace: document.getElementById("pace"),
   interests: document.getElementById("interests"),
@@ -18,18 +19,41 @@ const els = {
   errorPanel: document.getElementById("error-panel"),
   errorMessage: document.getElementById("error-message"),
   errorDetails: document.getElementById("error-details"),
+  navResults: document.getElementById("nav-results"),
+  headerStatus: document.getElementById("header-status"),
+  headerStatusText: document.getElementById("header-status-text"),
   sideIdle: document.getElementById("side-idle"),
   sideLoading: document.getElementById("side-loading"),
   loadingCopy: document.getElementById("loading-copy"),
+  summaryMode: document.getElementById("summary-mode"),
+  sumRoute: document.getElementById("sum-route"),
+  sumDates: document.getElementById("sum-dates"),
+  sumDuration: document.getElementById("sum-duration"),
+  sumBudget: document.getElementById("sum-budget"),
+  sumPace: document.getElementById("sum-pace"),
+  sumInterests: document.getElementById("sum-interests"),
+  sumDietary: document.getElementById("sum-dietary"),
+  summaryNote: document.getElementById("summary-note"),
   results: document.getElementById("results"),
+  resultEyebrow: document.getElementById("result-eyebrow"),
   resultTitle: document.getElementById("result-title"),
   resultSubtitle: document.getElementById("result-subtitle"),
   resultBadges: document.getElementById("result-badges"),
+  sourceBanner: document.getElementById("source-banner"),
+  sourceMark: document.getElementById("source-mark"),
+  sourceTitle: document.getElementById("source-title"),
+  sourceCopy: document.getElementById("source-copy"),
+  resultSummary: document.getElementById("result-summary"),
+  overviewIncludes: document.getElementById("overview-includes"),
+  overviewFacts: document.getElementById("overview-facts"),
+  overviewMode: document.getElementById("overview-mode"),
   totalCost: document.getElementById("total-cost"),
+  budgetFlag: document.getElementById("budget-flag"),
   budgetStatus: document.getElementById("budget-status"),
   budgetTotal: document.getElementById("budget-total"),
   budgetRemaining: document.getElementById("budget-remaining"),
   budgetFill: document.getElementById("budget-fill"),
+  budgetTrack: document.getElementById("budget-track"),
   budgetPercent: document.getElementById("budget-percent"),
   budgetBreakdown: document.getElementById("budget-breakdown"),
   flightCard: document.getElementById("flight-card"),
@@ -41,6 +65,19 @@ const els = {
   notes: document.getElementById("practical-notes"),
   traceLine: document.getElementById("trace-line"),
   disclaimer: document.getElementById("result-disclaimer"),
+};
+
+const CURRENCY_SYMBOLS = {
+  EUR: "€",
+  USD: "$",
+  GBP: "£",
+  CZK: "Kč",
+  CHF: "CHF",
+};
+
+const ICONS = {
+  plane: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.5 3.5 2.8 10.9l6.4 2.1 2.2 6.4 9.9-15.9Z"/><path d="M9.2 13 21.5 3.5"/></svg>`,
+  bed: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19V8"/><path d="M3 16h18v3"/><path d="M21 16v-3a3 3 0 0 0-3-3h-7v6"/><circle cx="7" cy="11" r="2"/></svg>`,
 };
 
 let config = null;
@@ -88,6 +125,14 @@ function formatDate(isoDate, options = {}) {
   }).format(date);
 }
 
+function formatShortDate(isoDate) {
+  const date = new Date(`${isoDate}T12:00:00`);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
+
 function formatDay(isoDate) {
   return new Intl.DateTimeFormat("en-US", {
     weekday: "short",
@@ -97,6 +142,7 @@ function formatDay(isoDate) {
 }
 
 function displayLabel(value) {
+  if (!value) return "";
   if (value === "gluten_free") return "Gluten-free";
   return value
     .replaceAll("_", " ")
@@ -111,6 +157,21 @@ function toISODate(date) {
   ].join("-");
 }
 
+function tripLength(startValue, endValue) {
+  if (!startValue || !endValue) return null;
+  const start = new Date(`${startValue}T12:00:00`);
+  const end = new Date(`${endValue}T12:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+    return null;
+  }
+  return Math.round((end - start) / 86400000);
+}
+
+function selectedValues(name) {
+  return [...els.form.querySelectorAll(`input[name="${name}"]:checked`)]
+    .map((input) => input.value);
+}
+
 function setOptions(select, values, selected) {
   select.innerHTML = values
     .map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(displayLabel(value))}</option>`)
@@ -120,8 +181,8 @@ function setOptions(select, values, selected) {
   }
 }
 
-function setChips(container, values, name, selectedValues = []) {
-  const selected = new Set(selectedValues);
+function setChips(container, values, name, selectedValuesList = []) {
+  const selected = new Set(selectedValuesList);
   container.innerHTML = values
     .map((value) => `
       <label class="chip">
@@ -148,15 +209,62 @@ function getMode() {
   return els.form.querySelector('input[name="mode"]:checked')?.value || "offline";
 }
 
+function updateCurrencyPrefix() {
+  const currency = els.currency.value || "EUR";
+  els.budgetPrefix.textContent = CURRENCY_SYMBOLS[currency] || currency;
+}
+
 function updateModeNote() {
   if (!config) return;
+  const live = getMode() === "live";
+
   if (config.live_api_available) {
-    els.modeNote.textContent = getMode() === "live"
+    els.modeNote.textContent = live
       ? "Live mode sends this request to DeepSeek and may use API credits."
       : "Offline mode uses the deterministic scripted model. No API credits are used.";
   } else {
     els.modeNote.textContent = "Live mode is unavailable until a DeepSeek API key is configured. Offline mode is ready.";
   }
+
+  els.summaryMode.textContent = live ? "Live" : "Offline";
+  els.summaryMode.classList.toggle("is-live", live);
+  els.summaryNote.textContent = live
+    ? "DeepSeek composes the plan; travel data stays simulated."
+    : "Deterministic scripted plan using simulated travel data.";
+}
+
+function updateTripSummary() {
+  if (!config) return;
+
+  const destination = els.destination.value || "Destination";
+  const departure = els.departure.value || "Departure";
+  const nights = tripLength(els.startDate.value, els.endDate.value);
+
+  els.sumRoute.textContent = `${departure} → ${destination}`;
+
+  if (nights === null) {
+    els.sumDates.textContent = "Choose valid dates";
+    els.sumDuration.textContent = "—";
+  } else {
+    els.sumDates.textContent = `${formatShortDate(els.startDate.value)} – ${formatDate(els.endDate.value)}`;
+    els.sumDuration.textContent = `${nights + 1} days · ${nights} night${nights === 1 ? "" : "s"}`;
+  }
+
+  const currency = els.currency.value || "EUR";
+  els.sumBudget.textContent = formatMoney(Number(els.budget.value) || 0, currency);
+  els.sumPace.textContent = displayLabel(els.pace.value) || "—";
+
+  const interests = selectedValues("interests");
+  els.sumInterests.textContent = interests.length
+    ? interests.map(displayLabel).join(", ")
+    : "Choose at least one";
+
+  const dietary = selectedValues("dietary");
+  els.sumDietary.textContent = dietary.length
+    ? dietary.map(displayLabel).join(", ")
+    : "No restrictions";
+
+  updateCurrencyPrefix();
 }
 
 async function requestJSON(url, options = {}) {
@@ -208,22 +316,30 @@ async function loadConfig() {
     if (!config.live_api_available) {
       els.form.querySelector('input[name="mode"][value="offline"]').checked = true;
     }
+
+    els.headerStatusText.textContent = config.live_api_available
+      ? "Live mode available"
+      : "Offline demo ready";
+    els.headerStatus.classList.toggle("is-live", config.live_api_available);
+    els.headerStatus.classList.remove("is-error");
+
     updateModeNote();
+    updateTripSummary();
     els.generateButton.disabled = false;
     els.formStatus.textContent = "Ready when you are.";
   } catch (error) {
     els.generateButton.disabled = true;
     els.buttonLabel.textContent = "Planner unavailable";
     els.formStatus.textContent = "Planner options could not be loaded.";
+    els.headerStatusText.textContent = "Server unavailable";
+    els.headerStatus.classList.add("is-error");
     showError(error);
   }
 }
 
 function collectRequest() {
-  const interests = [...els.form.querySelectorAll('input[name="interests"]:checked')]
-    .map((input) => input.value);
-  const dietary = [...els.form.querySelectorAll('input[name="dietary"]:checked')]
-    .map((input) => input.value);
+  const interests = selectedValues("interests");
+  const dietary = selectedValues("dietary");
   const budget = Number(els.budget.value);
   const mode = getMode();
 
@@ -268,9 +384,11 @@ function setGenerationEnabled(enabled) {
   els.generateButton.classList.toggle("is-loading", !enabled);
   els.generateButton.setAttribute("aria-busy", String(!enabled));
   els.buttonLabel.textContent = enabled ? "Generate itinerary" : "Planning your trip...";
+
   if (!enabled) {
     els.sideIdle.hidden = true;
     els.sideLoading.hidden = false;
+    els.navResults.hidden = true;
     els.loadingCopy.textContent = getMode() === "live"
       ? "DeepSeek is selecting tools, checking the budget and shaping the days."
       : "Checking flights, stays, weather and local highlights.";
@@ -311,6 +429,58 @@ function weatherIcon(condition) {
   return "🌤️";
 }
 
+function renderSource(mode) {
+  const live = mode === "live";
+  els.sourceBanner.classList.toggle("is-live", live);
+  els.sourceBanner.classList.toggle("is-offline", !live);
+  els.sourceMark.textContent = live ? "AI" : "S";
+  els.sourceTitle.textContent = live
+    ? "DeepSeek live · AI-composed itinerary"
+    : "Offline demo · scripted itinerary";
+  els.sourceCopy.textContent = live
+    ? "DeepSeek selected and sequenced the agent tools, then composed this plan. Flights, stays, weather, prices and opening hours remain simulated demo data."
+    : "A deterministic scripted model assembled this plan from simulated demo data. No API calls were made and nothing here is bookable.";
+}
+
+function renderOverview(plan, mode) {
+  const request = plan.request;
+  const nights = plan.daily_itinerary.length - 1;
+  const facts = [
+    ["Route", `${request.departure_city} → ${request.destination}`],
+    ["Dates", `${formatShortDate(request.start_date)} – ${formatDate(request.end_date)}`],
+    ["Duration", `${plan.daily_itinerary.length} days · ${nights} night${nights === 1 ? "" : "s"}`],
+    ["Pace", displayLabel(request.pace)],
+    ["Interests", request.interests.map(displayLabel).join(", ")],
+    ["Dietary", request.dietary_restrictions.length
+      ? request.dietary_restrictions.map(displayLabel).join(", ")
+      : "No restrictions"],
+  ];
+
+  const activityCount = plan.daily_itinerary.reduce(
+    (sum, day) => sum + day.activities.length,
+    0,
+  );
+  const includes = [
+    `Round-trip flight with ${plan.selected_flight.airline}`,
+    `${nights} night${nights === 1 ? "" : "s"} at ${plan.selected_accommodation.name}`,
+    `${activityCount} scheduled activit${activityCount === 1 ? "y" : "ies"} across ${plan.daily_itinerary.length} days`,
+  ];
+
+  els.resultSummary.textContent = plan.summary;
+  els.overviewIncludes.innerHTML = includes
+    .map((item) => `<li>${escapeHtml(item)}</li>`)
+    .join("");
+  els.overviewMode.textContent = mode === "live" ? "AI-composed" : "Scripted";
+  els.overviewFacts.innerHTML = facts
+    .map(([label, value]) => `
+      <div>
+        <dt>${escapeHtml(label)}</dt>
+        <dd>${escapeHtml(value)}</dd>
+      </div>
+    `)
+    .join("");
+}
+
 function renderBudget(plan) {
   const budget = plan.budget_breakdown;
   const currency = budget.currency;
@@ -325,8 +495,11 @@ function renderBudget(plan) {
   els.budgetStatus.textContent = overBudget
     ? `This plan is over budget by ${formatMoney(Math.abs(budget.remaining_budget), currency)}.`
     : `The plan stays within budget with ${formatMoney(budget.remaining_budget, currency)} to spare.`;
+  els.budgetFlag.textContent = overBudget ? "Over budget" : "Within budget";
+  els.budgetFlag.classList.toggle("is-over", overBudget);
   els.budgetFill.style.width = `${percent}%`;
   els.budgetFill.classList.toggle("is-over", overBudget);
+  els.budgetTrack.setAttribute("aria-valuenow", String(Math.round(percent)));
   els.budgetPercent.textContent = `${Math.round(percent)}% of budget`;
 
   const categories = [
@@ -336,42 +509,78 @@ function renderBudget(plan) {
     ["Activities", budget.activities],
     ["Local transport", budget.local_transportation],
   ];
+  const total = budget.total_estimated_cost;
+
   els.budgetBreakdown.innerHTML = categories
-    .map(([label, value]) => `
-      <div class="breakdown-item">
-        <span>${escapeHtml(label)}</span>
-        <strong>${escapeHtml(formatMoney(value, currency))}</strong>
-      </div>
-    `)
+    .map(([label, value]) => {
+      const share = total > 0 ? Math.min(100, (value / total) * 100) : 0;
+      return `
+        <div class="breakdown-row">
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(formatMoney(value, currency))}</strong>
+          <span class="breakdown-bar"><i style="width:${share.toFixed(1)}%"></i></span>
+        </div>
+      `;
+    })
     .join("");
 }
 
 function renderFlight(flight, currency) {
+  const stopsLabel = flight.stops === 0
+    ? "Direct"
+    : `${flight.stops} stop${flight.stops === 1 ? "" : "s"}`;
+
   els.flightCard.innerHTML = `
-    <div class="card-topline"><span>Flight · simulated</span><span class="card-price">${escapeHtml(formatMoney(flight.price, currency))}</span></div>
-    <h3>${escapeHtml(flight.airline)}</h3>
-    <p class="card-subtitle">Round trip for one traveller · ${flight.stops === 0 ? "Direct" : `${flight.stops} stop${flight.stops === 1 ? "" : "s"}`}</p>
-    <div class="route">
-      <span>${escapeHtml(flight.origin_city)}</span>
-      <span class="route-dash" aria-hidden="true"></span>
-      <span>${escapeHtml(flight.destination_city)}</span>
+    <div class="info-head">
+      <span class="info-tag">${ICONS.plane} Flight · simulated</span>
+      <span class="info-price">${escapeHtml(formatMoney(flight.price, currency))}</span>
     </div>
-    <div class="time-grid">
-      <div><small>Outbound</small><strong>${escapeHtml(flight.departure_date)} · ${escapeHtml(flight.outbound_departure_time)}–${escapeHtml(flight.outbound_arrival_time)}</strong></div>
-      <div><small>Return</small><strong>${escapeHtml(flight.return_date)} · ${escapeHtml(flight.return_departure_time)}–${escapeHtml(flight.return_arrival_time)}</strong></div>
+    <h3>${escapeHtml(flight.airline)}</h3>
+    <p class="info-sub">Round trip for one traveller · ${escapeHtml(stopsLabel)}</p>
+    <div class="flight-route">
+      <div class="flight-end">
+        <small>${escapeHtml(flight.outbound_departure_time)}</small>
+        <strong>${escapeHtml(flight.origin_airport)}</strong>
+        <span>${escapeHtml(flight.origin_city)}</span>
+      </div>
+      <div class="flight-line"><span>${escapeHtml(stopsLabel)}</span></div>
+      <div class="flight-end is-end">
+        <small>${escapeHtml(flight.outbound_arrival_time)}</small>
+        <strong>${escapeHtml(flight.destination_airport)}</strong>
+        <span>${escapeHtml(flight.destination_city)}</span>
+      </div>
+    </div>
+    <div class="info-meta">
+      <div>
+        <span>Outbound</span>
+        <strong>${escapeHtml(formatShortDate(flight.departure_date))} · ${escapeHtml(flight.outbound_departure_time)}–${escapeHtml(flight.outbound_arrival_time)}</strong>
+      </div>
+      <div>
+        <span>Return</span>
+        <strong>${escapeHtml(formatShortDate(flight.return_date))} · ${escapeHtml(flight.return_departure_time)}–${escapeHtml(flight.return_arrival_time)}</strong>
+      </div>
     </div>
   `;
 }
 
 function renderStay(hotel, currency) {
   els.stayCard.innerHTML = `
-    <div class="card-topline"><span>Stay · simulated</span><span class="card-price">${escapeHtml(formatMoney(hotel.total_price, currency))}</span></div>
+    <div class="info-head">
+      <span class="info-tag">${ICONS.bed} Stay · simulated</span>
+      <span class="info-price">${escapeHtml(formatMoney(hotel.total_price, currency))}</span>
+    </div>
     <h3>${escapeHtml(hotel.name)}</h3>
-    <p class="card-subtitle">${escapeHtml(hotel.location)} · ${escapeHtml(hotel.category)}</p>
-    <div class="hotel-detail">
-      <div><small>Rating</small><strong>${Number(hotel.rating).toFixed(1)} / 5</strong></div>
-      <div><small>Nightly</small><strong>${escapeHtml(formatMoney(hotel.price_per_night, currency))}</strong></div>
-      <div><small>Nights</small><strong>${escapeHtml(hotel.nights)}</strong></div>
+    <p class="info-sub">${escapeHtml(hotel.location)} · ${escapeHtml(hotel.category)}</p>
+    <div class="stay-rating">
+      <span aria-hidden="true">★</span>
+      <strong>${Number(hotel.rating).toFixed(1)}</strong>
+      <small>/ 5</small>
+    </div>
+    <div class="info-meta">
+      <div><span>Check-in</span><strong>${escapeHtml(formatShortDate(hotel.check_in))}</strong></div>
+      <div><span>Check-out</span><strong>${escapeHtml(formatShortDate(hotel.check_out))}</strong></div>
+      <div><span>Nightly</span><strong>${escapeHtml(formatMoney(hotel.price_per_night, currency))}</strong></div>
+      <div><span>Nights</span><strong>${escapeHtml(hotel.nights)}</strong></div>
     </div>
   `;
 }
@@ -380,10 +589,13 @@ function renderWeather(weather) {
   els.weather.innerHTML = weather
     .map((day) => `
       <article class="weather-card">
-        <div class="weather-icon" aria-hidden="true">${weatherIcon(day.condition)}</div>
-        <strong>${escapeHtml(day.max_temp_c)}° / ${escapeHtml(day.min_temp_c)}°</strong>
+        <div class="weather-top">
+          <span class="weather-icon" aria-hidden="true">${weatherIcon(day.condition)}</span>
+          <span class="weather-date">${escapeHtml(formatDay(day.date))}</span>
+        </div>
+        <strong>${escapeHtml(day.max_temp_c)}° <span>/ ${escapeHtml(day.min_temp_c)}°</span></strong>
         <p class="weather-condition">${escapeHtml(day.condition)}</p>
-        <span class="weather-meta">${escapeHtml(formatDay(day.date))} · ${escapeHtml(day.precipitation_probability)}% rain</span>
+        <span class="weather-meta">${escapeHtml(day.precipitation_probability)}% chance of rain</span>
       </article>
     `)
     .join("");
@@ -392,9 +604,12 @@ function renderWeather(weather) {
 function renderActivity(activity, currency) {
   return `
     <li class="activity">
-      <span class="activity-time">${escapeHtml(activity.start_time)}–${escapeHtml(activity.end_time)}</span>
+      <span class="activity-time">
+        <strong>${escapeHtml(activity.start_time)}</strong>
+        <span>${escapeHtml(activity.end_time)}</span>
+      </span>
       <div class="activity-body">
-        <strong>${escapeHtml(activity.name)}</strong>
+        <span class="activity-name">${escapeHtml(activity.name)}</span>
         <p>${escapeHtml(activity.description)}</p>
         ${activity.location ? `<span class="activity-location">${escapeHtml(activity.location)}</span>` : ""}
       </div>
@@ -404,27 +619,43 @@ function renderActivity(activity, currency) {
 }
 
 function renderItinerary(days, currency) {
-  els.itineraryCount.textContent = `${days.length} day${days.length === 1 ? "" : "s"}`;
+  const nights = days.length - 1;
+  els.itineraryCount.textContent = `${days.length} days · ${nights} night${nights === 1 ? "" : "s"}`;
+
   els.itinerary.innerHTML = days
-    .map((day) => `
-      <article class="day-card">
-        <div class="day-marker">
-          <span>Day ${escapeHtml(day.day_number)}</span>
-          <strong>${escapeHtml(formatDay(day.date))}</strong>
-          <small>${escapeHtml(day.theme)}</small>
-        </div>
-        <div>
-          ${day.activities.length
-            ? `<ul class="activity-list">${day.activities.map((activity) => renderActivity(activity, currency)).join("")}</ul>`
-            : `<p class="empty-day">No paid activities scheduled. Keep this day open for wandering.</p>`}
-          <div class="day-foot">
-            <span>Food <strong>${escapeHtml(formatMoney(day.daily_food_estimate, currency))}</strong></span>
-            <span>Local transport <strong>${escapeHtml(formatMoney(day.local_transport_estimate, currency))}</strong></span>
-            <span>Day total <strong>${escapeHtml(formatMoney(day.daily_total, currency))}</strong></span>
+    .map((day, index) => {
+      const accent = (index % 3) + 1;
+      const activityTotal = day.activities.reduce(
+        (sum, activity) => sum + Number(activity.estimated_cost || 0),
+        0,
+      );
+
+      return `
+        <article class="day-card accent-${accent}">
+          <header class="day-head">
+            <span class="day-badge"><small>Day</small>${String(day.day_number).padStart(2, "0")}</span>
+            <div class="day-heading">
+              <h4>${escapeHtml(day.theme)}</h4>
+              <span>${escapeHtml(formatDay(day.date))}</span>
+            </div>
+            <div class="day-total">
+              <span>Day total</span>
+              <strong>${escapeHtml(formatMoney(day.daily_total, currency))}</strong>
+            </div>
+          </header>
+          <div class="day-body">
+            ${day.activities.length
+              ? `<ul class="activity-list">${day.activities.map((activity) => renderActivity(activity, currency)).join("")}</ul>`
+              : `<p class="empty-day">No paid activities scheduled. Keep this day open for wandering.</p>`}
+            <div class="day-foot">
+              <span>Activities <strong>${escapeHtml(formatMoney(activityTotal, currency))}</strong></span>
+              <span>Food <strong>${escapeHtml(formatMoney(day.daily_food_estimate, currency))}</strong></span>
+              <span>Local transport <strong>${escapeHtml(formatMoney(day.local_transport_estimate, currency))}</strong></span>
+            </div>
           </div>
-        </div>
-      </article>
-    `)
+        </article>
+      `;
+    })
     .join("");
 }
 
@@ -439,14 +670,20 @@ function renderPlan(response) {
   const budget = plan.budget_breakdown;
   const modeLabel = response.mode === "live" ? "DeepSeek live" : "Offline demo";
 
+  els.resultEyebrow.textContent = response.mode === "live"
+    ? "Live AI itinerary"
+    : "Simulated itinerary";
   els.resultTitle.textContent = `${request.destination}, in your own rhythm`;
   els.resultSubtitle.textContent = `${formatDate(request.start_date)} – ${formatDate(request.end_date)} · ${plan.daily_itinerary.length} days from ${request.departure_city} · ${displayLabel(request.pace)} pace · one traveller`;
   els.resultBadges.innerHTML = [
-    modeLabel,
-    budget.budget_respected ? "Within budget" : "Over budget",
-    request.currency,
-  ].map((label) => `<span>${escapeHtml(label)}</span>`).join("");
+    `<span class="result-badge badge-mode ${response.mode === "live" ? "is-live" : "is-offline"}">${escapeHtml(modeLabel)}</span>`,
+    `<span class="result-badge ${budget.budget_respected ? "is-good" : "is-over"}">${escapeHtml(budget.budget_respected ? "Within budget" : "Over budget")}</span>`,
+    `<span class="result-badge">${escapeHtml(request.currency)}</span>`,
+    `<span class="result-badge">${escapeHtml(displayLabel(request.pace))} pace</span>`,
+  ].join("");
 
+  renderSource(response.mode);
+  renderOverview(plan, response.mode);
   renderBudget(plan);
   renderFlight(plan.selected_flight, currency);
   renderStay(plan.selected_accommodation, currency);
@@ -458,6 +695,7 @@ function renderPlan(response) {
   els.disclaimer.textContent = plan.data_disclaimer;
 
   els.results.hidden = false;
+  els.navResults.hidden = false;
   window.setTimeout(() => {
     els.results.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
   }, 80);
@@ -501,6 +739,8 @@ els.form.addEventListener("submit", handleSubmit);
 els.form.querySelectorAll('input[name="mode"]').forEach((input) => {
   input.addEventListener("change", updateModeNote);
 });
+els.form.addEventListener("input", updateTripSummary);
+els.form.addEventListener("change", updateTripSummary);
 els.startDate.addEventListener("change", () => {
   els.endDate.min = els.startDate.value;
   if (els.endDate.value && els.endDate.value <= els.startDate.value) {
